@@ -1,3 +1,6 @@
+import time
+
+
 def pretty_print(data):
     image = ""
     for line in data:
@@ -73,9 +76,7 @@ def draw_map(file: list[list], pos: Location, prev_spot: Location):
     draw = [line.copy() for line in file]
     draw[prev_spot.y][prev_spot.x] = "\x1b[6;30;93m" + "^" + "\x1b[0m"
     draw[pos.y][pos.x] = "\x1b[6;30;42m" + "^" + "\x1b[0m"
-    # print("")
     pretty_print(draw)
-    # print("\033[4A\033[2K", end="")
 
 
 def draw_local_map(file, pos):
@@ -87,7 +88,7 @@ def draw_local_map(file, pos):
     y_high = min(len(file[0]), pos.y + 10)
 
     draw[pos.y][pos.x] = "\x1b[6;30;42m" + "^" + "\x1b[0m"
-    # print("")
+
     draw = draw[y_low:y_high]
     draw = [line[x_low:x_high] for line in draw]
     pretty_print(draw)
@@ -120,19 +121,9 @@ def part1():
     spaces = []
 
     while in_bounds(guard.location, x_bound, y_bound):
-        # draw_map(file, guard.location, prev_spot)
         prev_spot = (guard.location.x, guard.location.y)
         spaces.append(prev_spot)
         guard.update(file)
-
-        # time.sleep(0.2)
-
-    draw = [line.copy() for line in file]
-
-    for pos in spaces:
-        draw[pos[1]][pos[0]] = "X"
-
-    # pretty_print(draw)
 
     unique_spaces = set(spaces)
     print(len(unique_spaces))
@@ -171,22 +162,19 @@ def part2():
     spaces = []
 
     while in_bounds(guard.location, x_bound, y_bound):
-        # draw_map(file, guard.location, prev_spot)
         prev_spot = (guard.location.x, guard.location.y)
         spaces.append(prev_spot)
         guard.update(file)
 
-        # time.sleep(0.2)
-
     spaces = list(set(spaces[1:]))  # Don't include the start spot
-    loops = []
+    loops = 0
     for obstacle in spaces:
         guard_loc = Location(guard_loc_x, guard_loc_y)
         guard = Guard(guard_loc, Direction())
 
         file[obstacle[1]][obstacle[0]] = "O"
 
-        potential_loop_pos = []
+        potential_loop_pos = set()
         while in_bounds(guard.location, x_bound, y_bound):
             # Loops only really happen on a turn
             if guard.check_collision(file):
@@ -197,11 +185,11 @@ def part2():
                     guard.direction.rotation,
                 ) in potential_loop_pos:
                     # draw_local_map(test_loop_map, bruteforce_guard.location)
-                    loops.append(obstacle)
+                    loops += 1
                     break
 
                 # If it hasnt been visited add it to the list of turns to check
-                potential_loop_pos.append(
+                potential_loop_pos.add(
                     (
                         guard.location.x,
                         guard.location.y,
@@ -211,13 +199,9 @@ def part2():
             _ = guard.update(file)
         file[obstacle[1]][obstacle[0]] = "."
 
-    loops = list(set(loops))
-
     print("Result:")
-    print(len(loops))
+    print(loops)
 
-
-import time
 
 if __name__ == "__main__":
     part1()
