@@ -1,5 +1,4 @@
 from collections import defaultdict
-import random
 
 
 def check_in(a, b):
