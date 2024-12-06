@@ -1,4 +1,8 @@
 import time
+from dataclasses import dataclass
+import cProfile, pstats, io
+
+from pstats import SortKey
 
 
 def pretty_print(data):
@@ -8,10 +12,13 @@ def pretty_print(data):
     print(image)
 
 
+@dataclass(slots=True)
 class Location:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    x: int
+    y: int
+
+
+# Location = namedtuple("Location", ["x", "y"])
 
 
 class Direction:
@@ -42,28 +49,45 @@ class Direction:
 
 
 class Guard:
-    def __init__(self, location: Location, direction: Direction):
+    def __init__(
+        self,
+        location: Location,
+        direction: Direction,
+        x_bound,
+        y_bound,
+        use_cache=False,
+    ):
         self.location = location
         self.direction = direction
+        self.x_bound = x_bound
+        self.y_bound = y_bound
 
     def update(self, data):
         if self.check_collision(data):
             self.direction.rotate(1)
-        if not self.check_collision(data):
+        else:
             self.location.x += self.direction.x
             self.location.y += self.direction.y
 
     def check_collision(self, data):
-        next_space = Location(
-            self.location.x + self.direction.x, self.location.y + self.direction.y
-        )
-        if in_bounds(next_space, len(data[0]), len(data)) and (
-            data[next_space.y][next_space.x] == "#"
-            or data[next_space.y][next_space.x] == "O"
-        ):
+        x = self.location.x + self.direction.x
+        y = self.location.y + self.direction.y
+
+        if col_in_bounds(
+            x,
+            y,
+            self.x_bound,
+            self.y_bound,
+        ) and (data[y][x] == "#" or data[y][x] == "O"):
             return True
         else:
             return False
+
+
+def col_in_bounds(px, py, x, y):
+    if px >= 0 and px < x and py >= 0 and py < y:
+        return True
+    return False
 
 
 def in_bounds(pos: Location, x, y):
@@ -102,7 +126,7 @@ def part1():
     file = [[*s] for s in file]
 
     # Find guard position
-    guard_loc = []
+    guard_loc = None
 
     for y in range(len(file)):
         for x in range(len(file[0])):
@@ -113,10 +137,10 @@ def part1():
         if guard_loc:
             break
 
-    guard = Guard(guard_loc, Direction())
-
     x_bound = len(file[0])
     y_bound = len(file)
+
+    guard = Guard(guard_loc, Direction(), x_bound, y_bound)
 
     spaces = []
 
@@ -153,11 +177,11 @@ def part2():
         if stop:
             break
 
-    guard_loc = Location(guard_loc_x, guard_loc_y)
-    guard = Guard(guard_loc, Direction())
-
     x_bound = len(file[0])
     y_bound = len(file)
+
+    guard_loc = Location(guard_loc_x, guard_loc_y)
+    guard = Guard(guard_loc, Direction(), x_bound, y_bound)
 
     spaces = []
 
@@ -170,7 +194,7 @@ def part2():
     loops = 0
     for obstacle in spaces:
         guard_loc = Location(guard_loc_x, guard_loc_y)
-        guard = Guard(guard_loc, Direction())
+        guard = Guard(guard_loc, Direction(), x_bound, y_bound)
 
         file[obstacle[1]][obstacle[0]] = "O"
 
@@ -203,9 +227,22 @@ def part2():
     print(loops)
 
 
+def profile(func):
+    pr = cProfile.Profile()
+    pr.enable()
+    func()
+    pr.disable()
+    s = io.StringIO()
+    sortby = SortKey.CUMULATIVE
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print(s.getvalue())
+
+
 if __name__ == "__main__":
     part1()
     start = time.perf_counter()
+    # profile(part2)
     part2()
     stop = time.perf_counter()
     print(stop - start, "seconds")
